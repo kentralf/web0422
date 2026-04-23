@@ -1,18 +1,166 @@
-<h2>關於我</h2>
-<p>
-我是智偉，目前從事行政工作，平時負責資料整理與日常事務處理。
-個性細心負責，同時也帶有牡羊座的行動力，做事積極且有條理。
-</p>
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智偉 | 牡羊座個人網站</title>
 
-<h2>基本資料</h2>
-<ul>
-    <li>星座：牡羊座 ♈</li>
-    <li>職業：行政人員</li>
-</ul>
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #1a1a1a;
+    color: #f1f1f1;
+}
 
-<h2>興趣</h2>
-<ul>
-    <li>打球</li>
-    <li>聽音樂</li>
-    <li>看電影</li>
-</ul>
+/* Header */
+header {
+    background: linear-gradient(135deg, #ff3b3b, #ff7b7b);
+    padding: 80px 20px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 42px;
+    margin: 0;
+}
+
+header p {
+    margin-top: 10px;
+}
+
+/* Container */
+.container {
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+}
+
+/* Section */
+.section {
+    margin-top: 50px;
+}
+
+h2 {
+    border-left: 5px solid #ff4d4d;
+    padding-left: 10px;
+}
+
+/* Card */
+.card {
+    background: #2a2a2a;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 15px;
+}
+
+/* Zodiac highlight */
+.zodiac {
+    color: #ff4d4d;
+    font-weight: bold;
+}
+
+/* Hobby */
+.hobby li {
+    margin: 8px 0;
+}
+
+/* Button */
+.btn {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px 20px;
+    background: #ff4d4d;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: #ff1a1a;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 30px;
+    color: #aaa;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>智偉 ♈</h1>
+    <p>牡羊座｜熱情行動派</p>
+</header>
+
+<div class="container">
+
+    <div class="section">
+        <h2>關於我</h2>
+        <div class="card">
+            <p>
+                我目前從事行政工作，負責日常資料整理與行政事務處理。
+                做事細心且有條理，能穩定完成工作任務。
+            </p>
+            <p>
+                個性帶有<span class="zodiac">牡羊座</span>的特質，
+                喜歡主動行動、快速處理事情，面對挑戰時也願意嘗試與突破。
+            </p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>星座個性</h2>
+        <div class="card">
+            <ul>
+                <li>🔥 行動力強，想到就會去做</li>
+                <li>⚡ 反應快，不喜歡拖延</li>
+                <li>💪 面對挑戰有衝勁</li>
+                <li>🤝 直率好相處</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>興趣</h2>
+        <div class="card">
+            <ul class="hobby">
+                <li>🏀 打球（釋放壓力、保持活力）</li>
+                <li>🎧 聽音樂（放鬆心情）</li>
+                <li>🎬 看電影（享受故事）</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>小互動</h2>
+        <div class="card">
+            <p>點擊看看你的今日牡羊能量 🔥</p>
+            <div class="btn" onclick="showEnergy()">查看能量</div>
+        </div>
+    </div>
+
+</div>
+
+<footer>
+    © 2026 智偉 Aries Style
+</footer>
+
+<script>
+function showEnergy() {
+    const messages = [
+        "今天適合行動！不要猶豫 🔥",
+        "保持你的節奏，一切都在掌握中 💪",
+        "勇敢一點，會有好結果 ⚡",
+        "適合嘗試新事物的一天 🚀"
+    ];
+
+    const random = Math.floor(Math.random() * messages.length);
+    alert(messages[random]);
+}
+</script>
+
+</body>
+</html>
