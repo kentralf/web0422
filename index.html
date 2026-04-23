@@ -1,37 +1,111 @@
 <!DOCTYPE html>
-<html lang="zh-tw">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web0422 介紹</title>
+    <title>我的個人網站</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            line-height: 1.6;
+            margin: 0;
+            background: #f5f5f5;
         }
-        h1 {
-            color: #333;
+
+        header {
+            background: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
         }
-        ul {
-            list-style-type: disc;
-            margin-left: 20px;
+
+        nav {
+            background: #555;
+            padding: 10px;
+            text-align: center;
+        }
+
+        nav a {
+            color: white;
+            margin: 0 15px;
+            text-decoration: none;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        section {
+            padding: 40px;
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            margin-top: 20px;
+            border-radius: 10px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #333;
+            color: white;
+            margin-top: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #007BFF;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 </head>
+
 <body>
-    <h1>歡迎來到 Web0422(333)</h1>
-    <p>這是一個簡單的網頁範例，用來介紹基本的 HTML 結構和元素222。</p>
-    
-    <h2>介紹範例</h2>
+
+<header>
+    <h1>你好，我是智偉 👋</h1>
+    <p>Java 初學者 | 軟體工程學習中</p>
+</header>
+
+<nav>
+    <a href="#about">關於我</a>
+    <a href="#skills">技能</a>
+    <a href="#projects">作品</a>
+    <a href="#contact">聯絡我</a>
+</nav>
+
+<section id="about">
+    <h2>關於我</h2>
+    <p>我正在學習 Java，目標是轉職成為軟體工程師。</p>
+</section>
+
+<section id="skills">
+    <h2>技能</h2>
     <ul>
-        <li><strong>標題：</strong> 使用 &lt;h1&gt; 到 &lt;h6&gt; 標籤來創建不同層級的標題。</li>
-        <li><strong>段落：</strong> 使用 &lt;p&gt; 標籤來添加文字段落。</li>
-        <li><strong>列表：</strong> 使用 &lt;ul&gt; 和 &lt;li&gt; 來創建無序列表。</li>
-        <li><strong>鏈接：</strong> 使用 &lt;a&gt; 標籤來添加超鏈接，例如 <a href="https://www.example.com">範例鏈接</a>。</li>
-        <li><strong>圖片：</strong> 使用 &lt;img&gt; 標籤來嵌入圖片（這裡是範例）。</li>
+        <li>Java 基礎</li>
+        <li>物件導向 (OOP)</li>
+        <li>簡單終端機遊戲開發</li>
     </ul>
-    
-    <p>這個頁面展示了基本的 HTML 元素。您可以根據需要修改內容。</p>
-</body>
-</html>
+</section>
+
+<section id="projects">
+    <h2>作品</h2>
+    <p>點擊按鈕查看我的 RPG 專案：</p>
+    <div class="btn" onclick="showProject()">查看作品</div>
+</section>
+
+<section id="contact">
+    <h2>聯絡我</h2>
+    <p>Email: your@email.com</p>
+</section>
+
+<footer>
+    <p>© 2026 我的個人網站</p>
+</footer>
+
+<script>
+function showProject() {
+    alert("這裡可以放你的 GitHub 或作品連結！");
+}
+</script>
