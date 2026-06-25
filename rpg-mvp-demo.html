@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPG 冒險 MVP Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d1a;
+    --panel: #141428;
+    --panel2: #1c1c38;
+    --border: #3a3a6a;
+    --gold: #e8c547;
+    --gold2: #f5d76e;
+    --hp: #4ade80;
+    --hp-low: #f87171;
+    --mp: #60a5fa;
+    --exp: #a78bfa;
+    --dmg: #f87171;
+    --heal: #4ade80;
+    --item: #fb923c;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --white: #ffffff;
+    --shadow: 0 4px 24px rgba(0,0,0,0.7);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── STARFIELD ── */
+  #stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle var(--t) ease-in-out infinite alternate; }
+  @keyframes twinkle { from { opacity: 0.1; } to { opacity: 0.9; } }
+
+  /* ── LAYOUT ── */
+  #app { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--panel2); border: 2px solid var(--border);
+    border-radius: 10px; padding: 10px 18px; margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+  .game-title { font-family: 'Press Start 2P', monospace; color: var(--gold); font-size: 13px; letter-spacing: 1px; }
+  .tutorial-btn {
+    background: var(--gold); color: #000; border: none; border-radius: 6px;
+    font-family: 'Press Start 2P', monospace; font-size: 9px; padding: 8px 12px;
+    cursor: pointer; transition: transform .1s;
+  }
+  .tutorial-btn:hover { transform: scale(1.05); }
+
+  /* ── PLAYER CARD ── */
+  #player-card {
+    background: var(--panel2); border: 2px solid var(--gold);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 14px;
+    box-shadow: 0 0 18px rgba(232,197,71,0.15);
+    display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: center;
+  }
+  .avatar {
+    width: 56px; height: 56px; border: 3px solid var(--gold);
+    border-radius: 8px; background: #222244;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; position: relative; overflow: hidden;
+  }
+  .avatar::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+  }
+  .player-name { font-family: 'Press Start 2P', monospace; color: var(--gold2); font-size: 11px; margin-bottom: 8px; }
+  .player-meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .bars { display: flex; flex-direction: column; gap: 4px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+  .bar-label { width: 24px; color: var(--muted); font-weight: 700; }
+  .bar-track { flex: 1; height: 10px; background: #1a1a3a; border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width .5s ease; }
+  .bar-hp .bar-fill { background: linear-gradient(90deg, #16a34a, var(--hp)); }
+  .bar-mp .bar-fill { background: linear-gradient(90deg, #1d4ed8, var(--mp)); }
+  .bar-exp .bar-fill { background: linear-gradient(90deg, #7c3aed, var(--exp)); }
+  .bar-val { font-size: 11px; color: var(--text); min-width: 56px; text-align: right; }
+  .gold-display { font-size: 13px; color: var(--gold); font-weight: 700; }
+
+  /* ── MAIN GRID ── */
+  #main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 680px) { #main-grid { grid-template-columns: 1fr; } }
+
+  /* ── PANEL ── */
+  .panel {
+    background: var(--panel); border: 2px solid var(--border);
+    border-radius: 10px; padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .panel-title {
+    font-family: 'Press Start 2P', monospace; font-size: 9px;
+    color: var(--gold); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-title .dot { width: 8px; height: 8px; background: var(--gold); border-radius: 2px; }
+
+  /* ── MAP ── */
+  #map-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  }
+  .map-cell {
+    aspect-ratio: 1; border-radius: 8px; border: 2px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 22px; transition: all .15s;
+    background: var(--panel2); position: relative; overflow: hidden;
+  }
+  .map-cell:hover:not(.locked) { border-color: var(--gold); transform: scale(1.04); box-shadow: 0 0 12px rgba(232,197,71,0.3); }
+  .map-cell.current { border-color: var(--gold); background: #1c1c38; box-shadow: 0 0 16px rgba(232,197,71,0.4); }
+  .map-cell.locked { opacity: 0.35; cursor: not-allowed; }
+  .map-cell .map-name { font-size: 9px; color: var(--muted); margin-top: 4px; text-align: center; }
+  .map-cell .map-lv { font-size: 8px; color: var(--gold); position: absolute; top: 4px; right: 5px; font-family: 'Press Start 2P', monospace; }
+  .map-cell.current .map-name { color: var(--gold); }
+
+  /* ── MONSTER PANEL ── */
+  #monster-display {
+    background: var(--panel2); border: 2px solid var(--border);
+    border-radius: 10px; padding: 14px; margin-bottom: 12px; text-align: center;
+    position: relative;
+  }
+  .monster-emoji { font-size: 52px; display: block; margin-bottom: 8px; animation: float 2s ease-in-out infinite alternate; }
+  @keyframes float { from { transform: translateY(0px); } to { transform: translateY(-6px); } }
+  .monster-name { font-family: 'Press Start 2P', monospace; font-size: 10px; color: #f87171; margin-bottom: 6px; }
+  .monster-hp-bar { height: 12px; background: #1a1a3a; border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+  .monster-hp-fill { height: 100%; background: linear-gradient(90deg, #991b1b, #f87171); border-radius: 99px; transition: width .5s ease; }
+  .monster-hp-text { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── BATTLE BUTTONS ── */
+  .battle-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn {
+    border: none; border-radius: 8px; padding: 10px 6px;
+    font-family: 'Press Start 2P', monospace; font-size: 8px;
+    cursor: pointer; transition: all .12s; text-align: center;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  .btn:active { transform: translateY(0); }
+  .btn-attack { background: linear-gradient(135deg, #dc2626, #ef4444); color: white; }
+  .btn-defend { background: linear-gradient(135deg, #1d4ed8, #3b82f6); color: white; }
+  .btn-item   { background: linear-gradient(135deg, #d97706, #f59e0b); color: white; }
+  .btn-run    { background: linear-gradient(135deg, #374151, #6b7280); color: white; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── BATTLE LOG ── */
+  #battle-log {
+    background: #0a0a18; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; height: 120px; overflow-y: auto; font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif; line-height: 1.7;
+    margin-top: 10px; scroll-behavior: smooth;
+  }
+  #battle-log::-webkit-scrollbar { width: 4px; }
+  #battle-log::-webkit-scrollbar-track { background: transparent; }
+  #battle-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .log-dmg   { color: var(--hp-low); }
+  .log-heal  { color: var(--heal); }
+  .log-exp   { color: var(--exp); }
+  .log-gold  { color: var(--gold); }
+  .log-info  { color: var(--muted); }
+  .log-win   { color: var(--gold); font-weight: 700; }
+  .log-sys   { color: #60a5fa; }
+
+  /* ── INVENTORY ── */
+  #inv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 220px; overflow-y: auto; }
+  #inv-grid::-webkit-scrollbar { width: 4px; }
+  #inv-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .inv-item {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px;
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .inv-item:hover { border-color: var(--item); }
+  .inv-icon { font-size: 20px; flex-shrink: 0; }
+  .inv-info { flex: 1; min-width: 0; }
+  .inv-name { font-size: 11px; font-weight: 700; color: var(--text); }
+  .inv-desc { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .inv-qty  { font-size: 10px; color: var(--gold); margin-top: 2px; }
+  .inv-empty { grid-column: 1/-1; text-align: center; color: var(--muted); font-size: 12px; padding: 20px; }
+
+  /* ── SHOP ── */
+  #shop-grid { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
+  .shop-item {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .shop-icon { font-size: 22px; }
+  .shop-info { flex: 1; }
+  .shop-name { font-size: 12px; font-weight: 700; }
+  .shop-desc { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .shop-price { font-size: 12px; color: var(--gold); font-weight: 700; margin-top: 2px; }
+  .btn-buy {
+    background: linear-gradient(135deg, #15803d, #22c55e);
+    color: white; border: none; border-radius: 6px;
+    font-family: 'Press Start 2P', monospace; font-size: 7px;
+    padding: 7px 10px; cursor: pointer; transition: all .12s; white-space: nowrap;
+  }
+  .btn-buy:hover { transform: scale(1.05); }
+  .btn-buy:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── FLOATING COMBAT TEXT ── */
+  .float-text {
+    position: fixed; font-family: 'Press Start 2P', monospace;
+    font-size: 16px; font-weight: 900; pointer-events: none;
+    animation: floatUp 1.2s ease-out forwards; z-index: 999;
+  }
+  @keyframes floatUp {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(1.4); }
+  }
+
+  /* ── TUTORIAL OVERLAY ── */
+  #tutorial-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    z-index: 500; display: flex; align-items: flex-end; justify-content: center;
+    padding: 24px; transition: opacity .3s;
+  }
+  #tutorial-overlay.hidden { opacity: 0; pointer-events: none; }
+  #tutorial-box {
+    background: var(--panel2); border: 3px solid var(--gold);
+    border-radius: 14px; padding: 24px 28px; max-width: 680px; width: 100%;
+    box-shadow: 0 0 40px rgba(232,197,71,0.3);
+    position: relative;
+  }
+  .tut-step { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--muted); margin-bottom: 8px; }
+  .tut-title { font-family: 'Press Start 2P', monospace; font-size: 13px; color: var(--gold); margin-bottom: 14px; }
+  .tut-text { font-size: 14px; line-height: 1.8; color: var(--text); margin-bottom: 20px; }
+  .tut-highlight { color: var(--gold); font-weight: 700; }
+  .tut-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .tut-nav {
+    border: none; border-radius: 8px; padding: 10px 20px;
+    font-family: 'Press Start 2P', monospace; font-size: 9px; cursor: pointer;
+    transition: transform .1s;
+  }
+  .tut-nav:hover { transform: scale(1.04); }
+  .tut-prev { background: var(--border); color: var(--text); }
+  .tut-next { background: var(--gold); color: #000; }
+  .tut-skip { background: transparent; color: var(--muted); font-size: 8px; border: 1px solid var(--border); }
+  .tut-pointer {
+    position: fixed; z-index: 501; pointer-events: none;
+    animation: pulse 1s ease-in-out infinite alternate;
+  }
+  @keyframes pulse { from { opacity: 0.7; transform: scale(1); } to { opacity: 1; transform: scale(1.15); } }
+
+  /* ── LEVEL UP MODAL ── */
+  #levelup-modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+    z-index: 600; display: flex; align-items: center; justify-content: center;
+    animation: fadeIn .3s ease;
+  }
+  #levelup-modal.hidden { display: none; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  #levelup-box {
+    background: var(--panel2); border: 4px solid var(--gold);
+    border-radius: 16px; padding: 40px; text-align: center;
+    box-shadow: 0 0 60px rgba(232,197,71,0.5);
+    animation: scaleIn .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes scaleIn { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .lu-emoji { font-size: 64px; display: block; margin-bottom: 16px; animation: spin 1s ease-out; }
+  @keyframes spin { from { transform: rotate(-20deg) scale(.8); } to { transform: rotate(0) scale(1); } }
+  .lu-title { font-family: 'Press Start 2P', monospace; font-size: 18px; color: var(--gold); margin-bottom: 10px; }
+  .lu-level { font-family: 'Press Start 2P', monospace; font-size: 32px; color: var(--gold2); margin-bottom: 16px; }
+  .lu-stats { font-size: 14px; color: var(--text); line-height: 2; margin-bottom: 24px; }
+  .lu-ok { background: var(--gold); color: #000; border: none; border-radius: 8px; padding: 12px 32px; font-family: 'Press Start 2P', monospace; font-size: 10px; cursor: pointer; }
+
+  /* ── NOTIFICATION ── */
+  #notif {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--panel2); border: 2px solid var(--gold);
+    border-radius: 10px; padding: 12px 24px;
+    font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--gold);
+    z-index: 700; transition: opacity .3s;
+    box-shadow: 0 0 20px rgba(232,197,71,0.3);
+    white-space: nowrap;
+  }
+  #notif.hidden { opacity: 0; pointer-events: none; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab {
+    flex: 1; padding: 7px; border-radius: 6px; border: 2px solid var(--border);
+    background: transparent; color: var(--muted); font-family: 'Press Start 2P', monospace;
+    font-size: 7px; cursor: pointer; transition: all .15s; text-align: center;
+  }
+  .tab.active { border-color: var(--gold); color: var(--gold); background: rgba(232,197,71,0.08); }
+
+  /* ── STATUS BADGES ── */
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .badge { background: rgba(232,197,71,0.12); border: 1px solid var(--gold); border-radius: 4px; padding: 2px 8px; font-size: 10px; color: var(--gold); }
+  .badge.blue { background: rgba(96,165,250,0.12); border-color: var(--mp); color: var(--mp); }
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="game-title">⚔ RPG ADVENTURE</div>
+    <button class="tutorial-btn" onclick="startTutorial()">📖 教學引導</button>
+  </div>
+
+  <!-- PLAYER CARD -->
+  <div id="player-card">
+    <div class="avatar" id="player-avatar">🧙</div>
+    <div>
+      <div class="player-name" id="player-name-display">勇者</div>
+      <div class="player-meta" id="player-meta">Lv.<span id="p-lv">1</span> &nbsp;|&nbsp; 攻擊: <span id="p-atk">10</span> &nbsp;|&nbsp; 防禦: <span id="p-def">5</span></div>
+      <div class="bars">
+        <div class="bar-row bar-hp">
+          <span class="bar-label" style="color:var(--hp)">HP</span>
+          <div class="bar-track"><div class="bar-fill" id="hp-bar" style="width:100%"></div></div>
+          <span class="bar-val"><span id="p-hp">100</span>/<span id="p-maxhp">100</span></span>
+        </div>
+        <div class="bar-row bar-mp">
+          <span class="bar-label" style="color:var(--mp)">MP</span>
+          <div class="bar-track"><div class="bar-fill" id="mp-bar" style="width:100%"></div></div>
+          <span class="bar-val"><span id="p-mp">50</span>/<span id="p-maxmp">50</span></span>
+        </div>
+        <div class="bar-row bar-exp">
+          <span class="bar-label" style="color:var(--exp)">EXP</span>
+          <div class="bar-track"><div class="bar-fill" id="exp-bar" style="width:0%"></div></div>
+          <span class="bar-val"><span id="p-exp">0</span>/<span id="p-maxexp">100</span></span>
+        </div>
+      </div>
+      <div class="gold-display" style="margin-top:6px">💰 <span id="p-gold">100</span> 金幣</div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div id="main-grid">
+
+    <!-- LEFT: MAP + BATTLE -->
+    <div>
+      <!-- MAP -->
+      <div class="panel" id="map-panel">
+        <div class="panel-title"><span class="dot"></span>🗺 探索地圖</div>
+        <div id="map-grid">
+          <!-- filled by JS -->
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--muted);text-align:center" id="map-desc">選擇地圖區域開始探索</div>
+      </div>
+
+      <!-- BATTLE -->
+      <div class="panel" style="margin-top:14px" id="battle-panel">
+        <div class="panel-title"><span class="dot"></span>⚔ 戰鬥場地</div>
+        <div id="monster-display" id="monster-area">
+          <span class="monster-emoji" id="mon-emoji">❓</span>
+          <div class="monster-name" id="mon-name">— 等待挑戰 —</div>
+          <div class="monster-hp-bar"><div class="monster-hp-fill" id="mon-hp-bar" style="width:0%"></div></div>
+          <div class="monster-hp-text" id="mon-hp-text">HP: -/-</div>
+        </div>
+        <div class="battle-btns" id="battle-btns">
+          <button class="btn btn-attack" id="btn-attack" onclick="playerAttack()" disabled>⚔ 攻擊</button>
+          <button class="btn btn-defend" id="btn-defend" onclick="playerDefend()" disabled>🛡 防禦</button>
+          <button class="btn btn-item"   id="btn-item"   onclick="useItem()"    disabled>🧪 道具</button>
+          <button class="btn btn-run"    id="btn-run"    onclick="runAway()"    disabled>💨 逃跑</button>
+        </div>
+        <div id="battle-log"><span class="log-info">選擇地圖區域並點擊「進入戰鬥」開始冒險...</span></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: TABS (背包 / 商店) -->
+    <div>
+      <div class="panel" id="right-panel">
+        <div class="tabs">
+          <button class="tab active" id="tab-inv" onclick="switchTab('inv')">🎒 背包</button>
+          <button class="tab" id="tab-shop" onclick="switchTab('shop')">🏪 商店</button>
+          <button class="tab" id="tab-stats" onclick="switchTab('stats')">📊 屬性</button>
+        </div>
+
+        <!-- INVENTORY -->
+        <div id="pane-inv">
+          <div class="panel-title" style="margin-bottom:8px"><span class="dot"></span>道具欄位</div>
+          <div id="inv-grid"></div>
+        </div>
+
+        <!-- SHOP -->
+        <div id="pane-shop" style="display:none">
+          <div class="panel-title" style="margin-bottom:8px"><span class="dot"></span>武器商店</div>
+          <div id="shop-grid"></div>
+        </div>
+
+        <!-- STATS -->
+        <div id="pane-stats" style="display:none">
+          <div class="panel-title" style="margin-bottom:8px"><span class="dot"></span>角色詳細屬性</div>
+          <div id="stats-content" style="font-size:13px;line-height:2.2;color:var(--text)"></div>
+        </div>
+      </div>
+
+      <!-- ACHIEVEMENT -->
+      <div class="panel" style="margin-top:14px" id="achieve-panel">
+        <div class="panel-title"><span class="dot"></span>🏆 冒險記錄</div>
+        <div id="achieve-list" style="font-size:12px;color:var(--muted);line-height:2"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- LEVEL UP MODAL -->
+<div id="levelup-modal" class="hidden">
+  <div id="levelup-box">
+    <span class="lu-emoji">⭐</span>
+    <div class="lu-title">LEVEL UP!</div>
+    <div class="lu-level" id="lu-new-level">Lv. 2</div>
+    <div class="lu-stats" id="lu-stat-gains"></div>
+    <button class="lu-ok" onclick="closeLevelUp()">繼續冒險 ▶</button>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div id="notif" class="hidden"></div>
+
+<!-- TUTORIAL OVERLAY -->
+<div id="tutorial-overlay" class="hidden">
+  <div id="tutorial-box">
+    <div class="tut-step" id="tut-step"></div>
+    <div class="tut-title" id="tut-title"></div>
+    <div class="tut-text" id="tut-text"></div>
+    <div class="tut-actions">
+      <button class="tut-nav tut-skip" onclick="skipTutorial()">跳過教學</button>
+      <button class="tut-nav tut-prev" id="tut-prev" onclick="tutPrev()">◀ 上一步</button>
+      <button class="tut-nav tut-next" id="tut-next" onclick="tutNext()">下一步 ▶</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// STARFIELD
+// ─────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  for (let i = 0; i < 120; i++) {
+    const x = Math.random() * canvas.width, y = Math.random() * canvas.height;
+    const r = Math.random() * 1.5 + 0.3;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.6+0.2})`; ctx.fill();
+  }
+})();
+
+// ─────────────────────────────────────────────
+// GAME STATE
+// ─────────────────────────────────────────────
+const state = {
+  player: {
+    name: '勇者', level: 1, exp: 0, expNext: 100,
+    hp: 100, maxHp: 100, mp: 50, maxMp: 50,
+    attack: 10, defense: 5, gold: 100,
+    currentMapId: null, defending: false,
+  },
+  monster: null,
+  inBattle: false,
+  monstersKilled: 0,
+  mapsVisited: new Set(),
+  battleCount: 0,
+  itemsUsed: 0,
+};
+
+const maps = [
+  { id:1, name:'新手村',  emoji:'🌿', levelMin:1, levelMax:2,  unlocked:true,  desc:'初學者練習場，怪物溫和' },
+  { id:2, name:'黑暗森林',emoji:'🌲', levelMin:2, levelMax:5,  unlocked:false, desc:'幽深森林，危機四伏' },
+  { id:3, name:'熔岩洞穴',emoji:'🌋', levelMin:4, levelMax:8,  unlocked:false, desc:'灼熱岩漿，火焰怪橫行' },
+  { id:4, name:'冰雪高原',emoji:'🏔', levelMin:6, levelMax:10, unlocked:false, desc:'極寒之地，強大魔物' },
+  { id:5, name:'古代遺跡',emoji:'🏛', levelMin:8, levelMax:12, unlocked:false, desc:'上古祕境，傳說怪獸' },
+  { id:6, name:'魔王城',  emoji:'🏰', levelMin:10,levelMax:15, unlocked:false, desc:'最終決戰之地' },
+];
+
+const monsterPool = [
+  { name:'史萊姆',  emoji:'🟢', hp:20,  atk:4,  def:1, exp:15, gold:8,  mapIds:[1,2] },
+  { name:'哥布林', emoji:'👺', hp:35,  atk:8,  def:3, exp:25, gold:14, mapIds:[1,2,3] },
+  { name:'骷髏兵', emoji:'💀', hp:50,  atk:12, def:5, exp:40, gold:20, mapIds:[2,3,4] },
+  { name:'火焰蜥', emoji:'🦎', hp:70,  atk:18, def:8, exp:60, gold:30, mapIds:[3,4] },
+  { name:'冰雪狼', emoji:'🐺', hp:90,  atk:22, def:10,exp:80, gold:40, mapIds:[4,5] },
+  { name:'石像魔', emoji:'🗿', hp:120, atk:28, def:15,exp:110,gold:55, mapIds:[5,6] },
+  { name:'魔王',   emoji:'👹', hp:200, atk:40, def:20,exp:300,gold:200,mapIds:[6] },
+];
+
+const inventory = [
+  { id:'potion',   name:'治療藥水', emoji:'🧪', type:'heal',   value:30, price:15, qty:3, desc:'回復 30 HP' },
+  { id:'mpotion',  name:'魔法藥水', emoji:'💙', type:'mp',     value:20, price:20, qty:2, desc:'回復 20 MP' },
+];
+
+const shopItems = [
+  { id:'potion',    name:'治療藥水', emoji:'🧪', type:'heal',   value:30, price:15, desc:'回復 30 HP', invId:'potion' },
+  { id:'mpotion',   name:'魔法藥水', emoji:'💙', type:'mp',     value:20, price:20, desc:'回復 20 MP', invId:'mpotion' },
+  { id:'iron_sword',name:'鐵劍',    emoji:'⚔',  type:'weapon', value:5,  price:80, desc:'攻擊 +5',    invId:'iron_sword' },
+  { id:'iron_armor',name:'鐵甲',    emoji:'🛡',  type:'armor',  value:5,  price:100,desc:'防禦 +5',    invId:'iron_armor' },
+  { id:'elixir',    name:'精靈藥水', emoji:'✨',  type:'full',   value:0,  price:150,desc:'完全回復 HP/MP',invId:'elixir' },
+];
+
+const achievements = [
+  { id:'first_kill',  name:'🗡 初次斬殺',    desc:'擊敗第一隻怪物',  done: false, check: () => state.monstersKilled >= 1 },
+  { id:'ten_kills',   name:'💪 十戰老將',    desc:'擊敗10隻怪物',    done: false, check: () => state.monstersKilled >= 10 },
+  { id:'level5',      name:'⭐ 五星英雄',    desc:'達到5級',         done: false, check: () => state.player.level >= 5 },
+  { id:'rich',        name:'💰 有錢人',      desc:'持有500金幣',      done: false, check: () => state.player.gold >= 500 },
+  { id:'explorer',   name:'🗺 探索家',      desc:'造訪3個地圖',      done: false, check: () => state.mapsVisited.size >= 3 },
+];
+
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
+function renderAll() {
+  renderPlayer();
+  renderMap();
+  renderInventory();
+  renderShop();
+  renderStats();
+  renderAchievements();
+}
+
+function renderPlayer() {
+  const p = state.player;
+  document.getElementById('player-name-display').textContent = p.name;
+  document.getElementById('p-lv').textContent = p.level;
+  document.getElementById('p-atk').textContent = p.attack;
+  document.getElementById('p-def').textContent = p.defense;
+  document.getElementById('p-hp').textContent = p.hp;
+  document.getElementById('p-maxhp').textContent = p.maxHp;
+  document.getElementById('p-mp').textContent = p.mp;
+  document.getElementById('p-maxmp').textContent = p.maxMp;
+  document.getElementById('p-exp').textContent = p.exp;
+  document.getElementById('p-maxexp').textContent = p.expNext;
+  document.getElementById('p-gold').textContent = p.gold;
+  const hpPct = (p.hp / p.maxHp * 100).toFixed(1);
+  document.getElementById('hp-bar').style.width = hpPct + '%';
+  document.getElementById('hp-bar').style.background =
+    hpPct < 25 ? 'linear-gradient(90deg,#991b1b,#f87171)' : 'linear-gradient(90deg,#16a34a,var(--hp))';
+  document.getElementById('mp-bar').style.width = (p.mp / p.maxMp * 100).toFixed(1) + '%';
+  document.getElementById('exp-bar').style.width = (p.exp / p.expNext * 100).toFixed(1) + '%';
+}
+
+function renderMap() {
+  const p = state.player;
+  // unlock maps based on level
+  maps.forEach(m => { if (p.level >= m.levelMin) m.unlocked = true; });
+  const grid = document.getElementById('map-grid');
+  grid.innerHTML = '';
+  maps.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'map-cell' + (m.id === p.currentMapId ? ' current' : '') + (!m.unlocked ? ' locked' : '');
+    div.innerHTML = `<div>${m.emoji}</div><div class="map-name">${m.name}</div><div class="map-lv">Lv${m.levelMin}</div>`;
+    if (m.unlocked) div.onclick = () => selectMap(m.id);
+    grid.appendChild(div);
+  });
+}
+
+function renderMonster() {
+  const m = state.monster;
+  if (!m) {
+    document.getElementById('mon-emoji').textContent = '❓';
+    document.getElementById('mon-name').textContent = '— 等待挑戰 —';
+    document.getElementById('mon-hp-bar').style.width = '0%';
+    document.getElementById('mon-hp-text').textContent = 'HP: -/-';
+    return;
+  }
+  document.getElementById('mon-emoji').textContent = m.emoji;
+  document.getElementById('mon-name').textContent = m.name;
+  const pct = (m.hp / m.maxHp * 100).toFixed(1);
+  document.getElementById('mon-hp-bar').style.width = pct + '%';
+  document.getElementById('mon-hp-text').textContent = `HP: ${m.hp} / ${m.maxHp}`;
+}
+
+function renderInventory() {
+  const grid = document.getElementById('inv-grid');
+  grid.innerHTML = '';
+  if (inventory.length === 0) {
+    grid.innerHTML = '<div class="inv-empty">背包空空如也...</div>'; return;
+  }
+  inventory.forEach((item, idx) => {
+    if (item.qty <= 0) return;
+    const div = document.createElement('div');
+    div.className = 'inv-item';
+    div.innerHTML = `<div class="inv-icon">${item.emoji}</div>
+      <div class="inv-info">
+        <div class="inv-name">${item.name}</div>
+        <div class="inv-desc">${item.desc}</div>
+        <div class="inv-qty">數量: ${item.qty}</div>
+      </div>`;
+    div.onclick = () => useSpecificItem(idx);
+    grid.appendChild(div);
+  });
+  if (grid.children.length === 0) grid.innerHTML = '<div class="inv-empty">背包空空如也...</div>';
+}
+
+function renderShop() {
+  const grid = document.getElementById('shop-grid');
+  grid.innerHTML = '';
+  shopItems.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'shop-item';
+    const canAfford = state.player.gold >= item.price;
+    div.innerHTML = `
+      <div class="shop-icon">${item.emoji}</div>
+      <div class="shop-info">
+        <div class="shop-name">${item.name}</div>
+        <div class="shop-desc">${item.desc}</div>
+        <div class="shop-price">💰 ${item.price} 金幣</div>
+      </div>
+      <button class="btn-buy" onclick="buyItem('${item.id}')" ${canAfford?'':'disabled'}>購買</button>`;
+    grid.appendChild(div);
+  });
+}
+
+function renderStats() {
+  const p = state.player;
+  document.getElementById('stats-content').innerHTML = `
+    <div>🧙 名稱：<strong>${p.name}</strong></div>
+    <div>⭐ 等級：<strong>Lv. ${p.level}</strong></div>
+    <div>❤ HP：<strong>${p.hp} / ${p.maxHp}</strong></div>
+    <div>💙 MP：<strong>${p.mp} / ${p.maxMp}</strong></div>
+    <div>⚔ 攻擊力：<strong>${p.attack}</strong></div>
+    <div>🛡 防禦力：<strong>${p.defense}</strong></div>
+    <div>✨ 經驗值：<strong>${p.exp} / ${p.expNext}</strong></div>
+    <div>💰 金幣：<strong>${p.gold}</strong></div>
+    <div>👹 擊殺數：<strong>${state.monstersKilled}</strong></div>
+    <div>🗺 探索地圖：<strong>${state.mapsVisited.size} 個</strong></div>
+  `;
+}
+
+function renderAchievements() {
+  achievements.forEach(a => { if (a.check()) a.done = true; });
+  const list = document.getElementById('achieve-list');
+  list.innerHTML = achievements.map(a =>
+    `<div style="color:${a.done?'var(--gold)':'var(--muted)'}">
+      ${a.done?'✅':'⬜'} ${a.name} <span style="font-size:10px;color:var(--muted)"> — ${a.desc}</span>
+    </div>`
+  ).join('');
+}
+
+// ─────────────────────────────────────────────
+// BATTLE LOGIC
+// ─────────────────────────────────────────────
+function selectMap(mapId) {
+  const map = maps.find(m => m.id === mapId);
+  if (!map || !map.unlocked) return;
+  if (state.inBattle) { notify('⚠ 請先結束當前戰鬥！'); return; }
+  state.player.currentMapId = mapId;
+  state.mapsVisited.add(mapId);
+  renderMap();
+  document.getElementById('map-desc').textContent = `📍 ${map.name} — ${map.desc}`;
+  // spawn monster
+  const pool = monsterPool.filter(m => m.mapIds.includes(mapId));
+  const template = pool[Math.floor(Math.random() * pool.length)];
+  const lvScale = 1 + (state.player.level - 1) * 0.15;
+  state.monster = {
+    ...template,
+    hp: Math.round(template.hp * lvScale),
+    maxHp: Math.round(template.hp * lvScale),
+    atk: Math.round(template.atk * lvScale),
+    def: Math.round(template.def * lvScale),
+  };
+  state.inBattle = true;
+  state.player.defending = false;
+  setBattleBtns(true);
+  renderMonster();
+  addLog(`🗺 進入 <b>${map.name}</b>！遇到了 <b>${state.monster.name}</b>！`, 'log-sys');
+  renderAchievements();
+}
+
+function setBattleBtns(enabled) {
+  ['btn-attack','btn-defend','btn-item','btn-run'].forEach(id => {
+    document.getElementById(id).disabled = !enabled;
+  });
+}
+
+function playerAttack() {
+  if (!state.inBattle || !state.monster) return;
+  const p = state.player, m = state.monster;
+  const dmg = Math.max(1, p.attack - m.def + Math.floor(Math.random()*5));
+  m.hp = Math.max(0, m.hp - dmg);
+  spawnFloatText('-' + dmg, '#f87171', 'mon-emoji');
+  addLog(`⚔ 你攻擊了 <b>${m.name}</b>，造成 <b>${dmg}</b> 點傷害！`, 'log-dmg');
+  renderMonster();
+  p.defending = false;
+  if (m.hp <= 0) { winBattle(); return; }
+  setTimeout(monsterTurn, 400);
+}
+
+function playerDefend() {
+  if (!state.inBattle) return;
+  state.player.defending = true;
+  addLog(`🛡 你進入防禦姿態，此回合傷害減半！`, 'log-info');
+  setTimeout(monsterTurn, 400);
+}
+
+function monsterTurn() {
+  if (!state.inBattle || !state.monster) return;
+  const p = state.player, m = state.monster;
+  let dmg = Math.max(1, m.atk - p.defense + Math.floor(Math.random()*4));
+  if (p.defending) { dmg = Math.max(1, Math.floor(dmg / 2)); }
+  p.hp = Math.max(0, p.hp - dmg);
+  spawnFloatText('-' + dmg, '#f87171', 'player-avatar');
+  addLog(`${m.emoji} <b>${m.name}</b> 攻擊你，造成 <b>${dmg}</b> 點傷害！`, 'log-dmg');
+  p.defending = false;
+  renderPlayer();
+  if (p.hp <= 0) { loseBattle(); return; }
+}
+
+function useItem() {
+  const healItems = inventory.filter(i => (i.type === 'heal' || i.type === 'mp' || i.type === 'full') && i.qty > 0);
+  if (healItems.length === 0) { notify('⚠ 沒有可用道具！'); return; }
+  const item = healItems[0];
+  useSpecificItem(inventory.indexOf(item));
+  if (state.inBattle) setTimeout(monsterTurn, 400);
+}
+
+function useSpecificItem(idx) {
+  const item = inventory[idx];
+  if (!item || item.qty <= 0) return;
+  const p = state.player;
+  if (item.type === 'heal') {
+    const healed = Math.min(item.value, p.maxHp - p.hp);
+    p.hp = Math.min(p.maxHp, p.hp + item.value);
+    spawnFloatText('+' + healed, '#4ade80', 'player-avatar');
+    addLog(`🧪 使用 <b>${item.name}</b>，回復 <b>${healed}</b> HP！`, 'log-heal');
+  } else if (item.type === 'mp') {
+    const restored = Math.min(item.value, p.maxMp - p.mp);
+    p.mp = Math.min(p.maxMp, p.mp + item.value);
+    addLog(`💙 使用 <b>${item.name}</b>，回復 <b>${restored}</b> MP！`, 'log-heal');
+  } else if (item.type === 'full') {
+    p.hp = p.maxHp; p.mp = p.maxMp;
+    addLog(`✨ 使用 <b>${item.name}</b>，完全回復 HP 和 MP！`, 'log-heal');
+  } else if (item.type === 'weapon') {
+    p.attack += item.value;
+    addLog(`⚔ 裝備 <b>${item.name}</b>，攻擊力 +${item.value}！`, 'log-exp');
+  } else if (item.type === 'armor') {
+    p.defense += item.value;
+    addLog(`🛡 裝備 <b>${item.name}</b>，防禦力 +${item.value}！`, 'log-exp');
+  }
+  item.qty--;
+  if (item.qty <= 0) inventory.splice(idx, 1);
+  state.itemsUsed++;
+  renderPlayer();
+  renderInventory();
+}
+
+function runAway() {
+  if (!state.inBattle) return;
+  const chance = Math.random();
+  if (chance > 0.4) {
+    state.inBattle = false; state.monster = null;
+    state.player.currentMapId = null;
+    setBattleBtns(false);
+    renderMonster(); renderMap();
+    addLog(`💨 成功逃離戰鬥！`, 'log-info');
+  } else {
+    addLog(`💨 逃跑失敗！`, 'log-dmg');
+    setTimeout(monsterTurn, 300);
+  }
+}
+
+function winBattle() {
+  const p = state.player, m = state.monster;
+  const expGain = m.exp + Math.floor(Math.random()*10);
+  const goldGain = m.gold + Math.floor(Math.random()*8);
+  p.exp += expGain; p.gold += goldGain;
+  state.monstersKilled++;
+  state.battleCount++;
+  state.inBattle = false; state.monster = null;
+  state.player.currentMapId = null;
+  setBattleBtns(false);
+  addLog(`🎉 擊敗 <b>${m.name}</b>！獲得 <b class="log-exp">${expGain} EXP</b> 和 <b class="log-gold">${goldGain} 金幣</b>！`, 'log-win');
+  // random item drop
+  if (Math.random() < 0.35) {
+    const drops = ['potion','mpotion'];
+    const drop = drops[Math.floor(Math.random()*drops.length)];
+    const found = inventory.find(i => i.id === drop);
+    if (found) found.qty++;
+    else {
+      const shopItem = shopItems.find(s => s.id === drop);
+      if (shopItem) inventory.push({...shopItem, qty:1});
+    }
+    const shopItem = shopItems.find(s => s.id === drop);
+    addLog(`📦 掉落了 <b>${shopItem?.emoji??'🎁'} ${shopItem?.name??'道具'}</b>！`, 'log-heal');
+  }
+  renderMonster(); renderMap(); renderInventory();
+  checkLevelUp();
+  renderAchievements();
+}
+
+function loseBattle() {
+  const p = state.player;
+  addLog(`💀 你被擊倒了！`, 'log-dmg');
+  addLog(`🌟 在村子裡甦醒，損失部分金幣...`, 'log-info');
+  const goldLoss = Math.floor(p.gold * 0.1);
+  p.gold = Math.max(0, p.gold - goldLoss);
+  p.hp = Math.floor(p.maxHp * 0.3);
+  p.mp = Math.floor(p.maxMp * 0.5);
+  state.inBattle = false; state.monster = null;
+  state.player.currentMapId = null;
+  setBattleBtns(false);
+  renderMonster(); renderPlayer(); renderMap();
+  notify('💀 你被打敗了！損失了 ' + goldLoss + ' 金幣');
+}
+
+function checkLevelUp() {
+  const p = state.player;
+  if (p.exp >= p.expNext) {
+    p.exp -= p.expNext;
+    p.level++;
+    p.expNext = Math.floor(p.expNext * 1.5);
+    const hpGain = 15 + p.level * 3;
+    const mpGain = 8 + p.level;
+    const atkGain = 2 + Math.floor(p.level/2);
+    const defGain = 1 + Math.floor(p.level/3);
+    p.maxHp += hpGain; p.hp = p.maxHp;
+    p.maxMp += mpGain; p.mp = p.maxMp;
+    p.attack += atkGain; p.defense += defGain;
+    document.getElementById('lu-new-level').textContent = 'Lv. ' + p.level;
+    document.getElementById('lu-stat-gains').innerHTML =
+      `❤ HP上限 +${hpGain}<br>💙 MP上限 +${mpGain}<br>⚔ 攻擊 +${atkGain}<br>🛡 防禦 +${defGain}`;
+    document.getElementById('levelup-modal').classList.remove('hidden');
+    renderPlayer(); renderMap();
+  }
+}
+
+function closeLevelUp() {
+  document.getElementById('levelup-modal').classList.add('hidden');
+}
+
+function buyItem(itemId) {
+  const shopItem = shopItems.find(s => s.id === itemId);
+  if (!shopItem) return;
+  if (state.player.gold < shopItem.price) { notify('💰 金幣不足！'); return; }
+  state.player.gold -= shopItem.price;
+  if (shopItem.type === 'weapon') {
+    state.player.attack += shopItem.value;
+    addLog(`⚔ 購買並裝備 <b>${shopItem.name}</b>，攻擊 +${shopItem.value}！`, 'log-exp');
+  } else if (shopItem.type === 'armor') {
+    state.player.defense += shopItem.value;
+    addLog(`🛡 購買並裝備 <b>${shopItem.name}</b>，防禦 +${shopItem.value}！`, 'log-exp');
+  } else {
+    const found = inventory.find(i => i.id === itemId);
+    if (found) found.qty++;
+    else inventory.push({ id: shopItem.id, name: shopItem.name, emoji: shopItem.emoji, type: shopItem.type, value: shopItem.value, price: shopItem.price, qty: 1, desc: shopItem.desc });
+    addLog(`🛒 購買 <b>${shopItem.emoji} ${shopItem.name}</b>！`, 'log-gold');
+  }
+  renderAll();
+}
+
+// ─────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────
+function switchTab(tab) {
+  ['inv','shop','stats'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('pane-' + t).style.display = t === tab ? '' : 'none';
+  });
+  if (tab === 'stats') renderStats();
+  if (tab === 'shop') renderShop();
+}
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+function addLog(html, cls = '') {
+  const log = document.getElementById('battle-log');
+  const line = document.createElement('div');
+  line.className = cls; line.innerHTML = html;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function notify(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg; el.classList.remove('hidden');
+  clearTimeout(window._notifTimer);
+  window._notifTimer = setTimeout(() => el.classList.add('hidden'), 2500);
+}
+
+function spawnFloatText(text, color, anchorId) {
+  const anchor = document.getElementById(anchorId);
+  if (!anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float-text';
+  el.textContent = text;
+  el.style.color = color;
+  el.style.left = (rect.left + rect.width/2 - 20) + 'px';
+  el.style.top  = (rect.top - 10) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+
+// ─────────────────────────────────────────────
+// TUTORIAL
+// ─────────────────────────────────────────────
+const tutorialSteps = [
+  {
+    title: '歡迎來到 RPG 冒險！',
+    text: `這是一個 <span class="tut-highlight">純前端 MVP 示範</span>，展示完整的 RPG 玩法流程。<br><br>
+      遊戲包含：<b>角色成長、地圖探索、回合制戰鬥、背包系統、商店購買</b>。<br><br>
+      跟著教學，幾分鐘內就能掌握所有功能！`,
+  },
+  {
+    title: '認識你的角色',
+    text: `畫面頂部是 <span class="tut-highlight">角色狀態面板</span>。<br><br>
+      • ❤ <b>HP（生命值）</b>：歸零就被打倒，注意保持 HP！<br>
+      • 💙 <b>MP（魔法值）</b>：未來技能會消耗 MP<br>
+      • ✨ <b>EXP（經驗值）</b>：累積經驗值可以升級<br>
+      • 💰 <b>金幣</b>：用來在商店購買道具和裝備`,
+  },
+  {
+    title: '探索地圖',
+    text: `點擊左側 <span class="tut-highlight">地圖格子</span> 進入對應區域！<br><br>
+      • 每個地圖有建議等級（Lv），等級不夠的地圖會鎖定 🔒<br>
+      • 進入地圖後會 <b>隨機遇到怪物</b> 並自動開始戰鬥<br>
+      • 先從 <b>🌿 新手村</b> 開始練習吧！`,
+  },
+  {
+    title: '戰鬥系統',
+    text: `遇到怪物後，戰鬥按鈕會亮起！<br><br>
+      ⚔ <b>攻擊</b>：對怪物造成傷害<br>
+      🛡 <b>防禦</b>：此回合受到的傷害減半<br>
+      🧪 <b>道具</b>：快速使用背包中的第一個補血道具<br>
+      💨 <b>逃跑</b>：有 60% 機率逃出戰鬥<br><br>
+      <span class="tut-highlight">戰鬥是回合制</span>：你行動一次，怪物也會反擊一次！`,
+  },
+  {
+    title: '背包與道具',
+    text: `右側切換到 <span class="tut-highlight">🎒 背包</span> 頁籤查看道具。<br><br>
+      • <b>點擊道具</b>可以隨時使用（非戰鬥中也可以）<br>
+      • 擊敗怪物有機率掉落道具<br>
+      • 治療藥水🧪 回復 HP，魔法藥水💙 回復 MP<br><br>
+      <span class="tut-highlight">小提示</span>：HP 低於 25% 時 HP 條會變紅色，要趕快補血！`,
+  },
+  {
+    title: '商店購物',
+    text: `切換到 <span class="tut-highlight">🏪 商店</span> 頁籤可以購買道具和裝備。<br><br>
+      • 消耗品（藥水）加入背包，需手動使用<br>
+      • 武器⚔ 和防具🛡 購買後立即裝備，永久提升屬性<br><br>
+      多累積金幣，購買更強的裝備來挑戰高等地圖！`,
+  },
+  {
+    title: '升級成長',
+    text: `擊敗怪物獲得 <span class="tut-highlight">EXP（經驗值）</span>，累積到上限後自動升級！<br><br>
+      升級的好處：<br>
+      • HP 上限增加<br>
+      • MP 上限增加<br>
+      • 攻擊力和防禦力提升<br>
+      • 解鎖更高等級的地圖<br><br>
+      等級越高，可以挑戰越強的怪物，獲得更多金幣！`,
+  },
+  {
+    title: '成就系統',
+    text: `右下角的 <span class="tut-highlight">🏆 冒險記錄</span> 顯示成就進度。<br><br>
+      完成目標即可解鎖成就：<br>
+      • 🗡 初次斬殺：擊敗第一隻怪物<br>
+      • 💪 十戰老將：擊敗 10 隻怪物<br>
+      • ⭐ 五星英雄：達到 5 級<br>
+      • 💰 有錢人：持有 500 金幣<br>
+      • 🗺 探索家：造訪 3 個地圖`,
+  },
+  {
+    title: '準備好了嗎？',
+    text: `教學完成！現在你已經了解所有基本操作。<br><br>
+      <span class="tut-highlight">建議新手路線：</span><br>
+      1️⃣ 點擊 🌿 新手村 開始第一場戰鬥<br>
+      2️⃣ 累積 EXP 升到 Lv.2，解鎖黑暗森林<br>
+      3️⃣ 存夠金幣買一把鐵劍提升戰力<br>
+      4️⃣ 挑戰更高等級地圖！<br><br>
+      祝你冒險順利，勇者！⚔✨`,
+  },
+];
+
+let tutStep = 0;
+function startTutorial() {
+  tutStep = 0;
+  renderTutStep();
+  document.getElementById('tutorial-overlay').classList.remove('hidden');
+}
+function skipTutorial() {
+  document.getElementById('tutorial-overlay').classList.add('hidden');
+}
+function tutNext() {
+  if (tutStep < tutorialSteps.length - 1) { tutStep++; renderTutStep(); }
+  else skipTutorial();
+}
+function tutPrev() {
+  if (tutStep > 0) { tutStep--; renderTutStep(); }
+}
+function renderTutStep() {
+  const step = tutorialSteps[tutStep];
+  document.getElementById('tut-step').textContent = `步驟 ${tutStep + 1} / ${tutorialSteps.length}`;
+  document.getElementById('tut-title').textContent = step.title;
+  document.getElementById('tut-text').innerHTML = step.text;
+  document.getElementById('tut-prev').disabled = tutStep === 0;
+  document.getElementById('tut-next').textContent = tutStep === tutorialSteps.length - 1 ? '開始遊戲 ▶' : '下一步 ▶';
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+renderAll();
+addLog('🌟 歡迎來到 RPG 冒險！點擊右上角「📖 教學引導」了解玩法。', 'log-sys');
+addLog('🗺 點擊地圖格子進入戰鬥，祝你冒險順利！', 'log-sys');
+setTimeout(startTutorial, 600);
+</script>
+</body>
+</html>
